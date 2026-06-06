@@ -146,6 +146,10 @@
   .user-badge span{flex:1;}
   .logout-btn{background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;padding:2px 6px;}
   .logout-btn:hover{text-decoration:underline;}
+  .pay-btn{padding:5px 12px;border-radius:4px;border:1px solid var(--border);background:transparent;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+  .pay-btn.pending{color:var(--expense);border-color:var(--expense);}
+  .pay-btn.pending:hover{background:rgba(244,165,106,.1);}
+  .pay-btn.paid{color:var(--income);border-color:var(--income);background:rgba(200,230,160,.1);}
 </style>
 </head>
 <body>
@@ -270,7 +274,14 @@
 
 <!-- GASTOS FIXOS -->
 <div class="page" id="page-fixos">
-  <div class="page-header"><div class="page-title">Gastos Fixos</div><div class="page-sub">REPETEM TODO MÊS AUTOMATICAMENTE</div></div>
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div><div class="page-title">Gastos Fixos</div><div class="page-sub">CLIQUE EM PAGO/PENDENTE PARA MARCAR O STATUS</div></div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+      <button onclick="changeFixedMonth(-1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">‹</button>
+      <div id="fixed-month-nav" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 16px;font-size:12px;min-width:120px;text-align:center;letter-spacing:.5px;"></div>
+      <button onclick="changeFixedMonth(1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">›</button>
+    </div>
+  </div>
   <div class="form-panel">
     <div class="form-panel-title">Cadastrar Gasto Fixo</div>
     <div class="form-row cols4">
@@ -422,7 +433,9 @@ const CATEGORIES = [
   {name:'Alimentação',color:'#a8c5e8'},{name:'Transporte',color:'#c8a8e8'},
   {name:'Moradia',color:'#e8c8a8'},{name:'Saúde',color:'#a8e8c8'},
   {name:'Lazer',color:'#e8a8c8'},{name:'Educação',color:'#c8e8a8'},
-  {name:'Vestuário',color:'#e8e8a8'},{name:'Outros',color:'#a8c8e8'},
+  {name:'Vestuário',color:'#e8e8a8'},{name:'Pet',color:'#b8e8b8'},
+  {name:'Pessoal Edilaine',color:'#f0b8d8'},{name:'Pessoal Matheus',color:'#b8c8f0'},
+  {name:'Pietro Filho',color:'#f0d8a8'},{name:'Outros',color:'#a8c8e8'},
 ];
 const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -432,7 +445,8 @@ let fixedItems   = [];
 let parcels      = [];
 let currentType  = 'gasto';
 let catMonthSel  = null;
-let dashMonth    = null; // selected month on dashboard
+let dashMonth    = null;
+let fixedPayments = {}; // { 'fixedId-YYYY-MM': true }
 let charts = {};
 
 // ── LOAD FROM SUPABASE ────────────────────────────────────────
@@ -442,10 +456,11 @@ async function loadAll() {
     [transactions, fixedItems, parcels] = await Promise.all([
       sbGet('transacoes'), sbGet('fixos'), sbGet('parcelas')
     ]);
-    // normalize field names
     transactions = transactions.map(t=>({...t, valor:parseFloat(t.valor)}));
     fixedItems   = fixedItems.map(f=>({...f, valor:parseFloat(f.valor)}));
     parcels      = parcels.map(p=>({...p, total:parseFloat(p.total), num:parseInt(p.num)}));
+    // load payment status from localStorage (per-device, lightweight)
+    fixedPayments = JSON.parse(localStorage.getItem('cf_fp') || '{}');
   } catch(e) {
     showToast('Erro ao conectar ao banco. Verifique as tabelas.', false);
   }
@@ -522,7 +537,7 @@ function showPage(id) {
   document.querySelectorAll('.nav-item')[PAGES.indexOf(id)].classList.add('active');
   if(id==='graficos') setTimeout(renderCharts,50);
   if(id==='categorias') renderCatPage();
-  if(id==='fixos') renderFixed();
+  if(id==='fixos') { fixedMonth = fixedMonth||currentMonthStr(); renderFixed(); }
   if(id==='parcelas') renderParcels();
 }
 
@@ -588,29 +603,57 @@ async function delFixed(id) {
   updateAll(); renderFixed();
 }
 
+let fixedMonth = null;
+
+function fpKey(fid, ym) { return `${fid}-${ym}`; }
+function isPaid(fid, ym) { return !!fixedPayments[fpKey(fid,ym)]; }
+function togglePaid(fid) {
+  const ym = fixedMonth || currentMonthStr();
+  const k = fpKey(fid, ym);
+  if(fixedPayments[k]) delete fixedPayments[k];
+  else fixedPayments[k] = true;
+  localStorage.setItem('cf_fp', JSON.stringify(fixedPayments));
+  renderFixed();
+}
+function changeFixedMonth(dir) {
+  if(!fixedMonth) fixedMonth = currentMonthStr();
+  fixedMonth = addMonths(fixedMonth, dir);
+  renderFixed();
+}
+
 function renderFixed() {
+  if(!fixedMonth) fixedMonth = currentMonthStr();
+  const [y,mo] = fixedMonth.split('-');
+  document.getElementById('fixed-month-nav').textContent = MONTHS_PT[+mo-1].toUpperCase()+' '+y;
+
   const list=document.getElementById('fixed-list');
   const empty=document.getElementById('fixed-empty');
   const label=document.getElementById('fixed-total-label');
   if(!fixedItems.length){list.innerHTML='';empty.style.display='block';label.textContent='';return;}
   empty.style.display='none';
   const total=fixedItems.reduce((a,f)=>a+f.valor,0);
-  label.textContent=`Total: ${fmt(total)}/mês`;
-  list.innerHTML=fixedItems.map(f=>`
-    <div class="fixed-item">
+  const paidCount=fixedItems.filter(f=>isPaid(f.id,fixedMonth)).length;
+  label.textContent=`${paidCount}/${fixedItems.length} pagos · Total: ${fmt(total)}/mês`;
+  list.innerHTML=fixedItems.map(f=>{
+    const paid=isPaid(f.id,fixedMonth);
+    return `<div class="fixed-item" style="${paid?'opacity:.6':''}">
       <div class="fixed-info">
-        <div class="fixed-name">${f.descricao}</div>
+        <div class="fixed-name" style="${paid?'text-decoration:line-through;color:var(--text-muted)':''}"> ${f.descricao}</div>
         <div class="fixed-meta">
           <span><span class="tag-dot" style="background:${catColor(f.cat)};display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:4px"></span>${f.cat}</span>
           <span>Vence dia ${f.dia}</span>
           <span class="tag fixed-tag">✦ Fixo</span>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px">
         <div class="fixed-amt">${fmt(f.valor)}<span style="font-size:10px;color:var(--text-muted)">/mês</span></div>
+        <button class="pay-btn ${paid?'paid':'pending'}" onclick="togglePaid(${f.id})">
+          ${paid?'✓ Pago':'● Pendente'}
+        </button>
         <button class="btn btn-danger btn-sm" onclick="delFixed(${f.id})">×</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── ADD PARCEL ────────────────────────────────────────────────
