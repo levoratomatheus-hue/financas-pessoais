@@ -782,10 +782,9 @@ function renderDashboard() {
   document.getElementById('d-gast').textContent=fmt(gastV);
   document.getElementById('d-fix').textContent=fmt(fixV);
   document.getElementById('d-par').textContent=fmt(parV);
-  const saldo = recV-gastV-fixV-parV;
-  const saldoEl = document.getElementById('d-saldo');
-  saldoEl.textContent = fmt(saldo);
-  saldoEl.className = saldo < 0 ? 'card-value exp' : 'card-value bal';
+  const saldoVal = recV - gastV - fixV - parV;
+  document.getElementById('d-saldo').textContent = fmt(saldoVal);
+  document.getElementById('d-saldo').className = saldoVal >= 0 ? 'card-value bal' : 'card-value exp';
   document.getElementById('d-rec-c').textContent=rec.length+' lançamento'+(rec.length!==1?'s':'');
   document.getElementById('d-gast-c').textContent=gast.length+' lançamento'+(gast.length!==1?'s':'');
   document.getElementById('d-fix-c').textContent=fixedItems.length+' ite'+(fixedItems.length!==1?'ns':'m')+' ativo'+(fixedItems.length!==1?'s':'');
