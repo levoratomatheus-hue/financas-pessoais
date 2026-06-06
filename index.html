@@ -785,8 +785,7 @@ function renderDashboard() {
   const saldo = recV-gastV-fixV-parV;
   const saldoEl = document.getElementById('d-saldo');
   saldoEl.textContent = fmt(saldo);
-  saldoEl.closest('.card').style.background = saldo < 0 ? '#ff4d4d22' : '';
-  saldoEl.style.color = saldo < 0 ? '#ff4d4d' : '';
+  saldoEl.className = saldo < 0 ? 'card-value exp' : 'card-value bal';
   document.getElementById('d-rec-c').textContent=rec.length+' lançamento'+(rec.length!==1?'s':'');
   document.getElementById('d-gast-c').textContent=gast.length+' lançamento'+(gast.length!==1?'s':'');
   document.getElementById('d-fix-c').textContent=fixedItems.length+' ite'+(fixedItems.length!==1?'ns':'m')+' ativo'+(fixedItems.length!==1?'s':'');
