@@ -782,7 +782,11 @@ function renderDashboard() {
   document.getElementById('d-gast').textContent=fmt(gastV);
   document.getElementById('d-fix').textContent=fmt(fixV);
   document.getElementById('d-par').textContent=fmt(parV);
-  document.getElementById('d-saldo').textContent=fmt(recV-gastV-fixV-parV);
+  const saldo = recV-gastV-fixV-parV;
+  const saldoEl = document.getElementById('d-saldo');
+  saldoEl.textContent = fmt(saldo);
+  saldoEl.closest('.card').style.background = saldo < 0 ? '#ff4d4d22' : '';
+  saldoEl.style.color = saldo < 0 ? '#ff4d4d' : '';
   document.getElementById('d-rec-c').textContent=rec.length+' lançamento'+(rec.length!==1?'s':'');
   document.getElementById('d-gast-c').textContent=gast.length+' lançamento'+(gast.length!==1?'s':'');
   document.getElementById('d-fix-c').textContent=fixedItems.length+' ite'+(fixedItems.length!==1?'ns':'m')+' ativo'+(fixedItems.length!==1?'s':'');
