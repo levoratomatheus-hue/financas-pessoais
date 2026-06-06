@@ -205,9 +205,17 @@
 <main class="main">
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
-  <div class="page-header">
-    <div class="page-title">Dashboard</div>
-    <div class="page-sub" id="dash-month-label">MÊS ATUAL</div>
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub" id="dash-month-label">MÊS ATUAL</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+      <button onclick="changeDashMonth(-1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">‹</button>
+      <div id="dash-month-nav" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 16px;font-size:12px;min-width:120px;text-align:center;letter-spacing:.5px;"></div>
+      <button onclick="changeDashMonth(1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">›</button>
+      <button onclick="goToCurrentMonth()" id="btn-hoje" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:5px;padding:7px 10px;cursor:pointer;font-size:10px;letter-spacing:1px;display:none;">HOJE</button>
+    </div>
   </div>
   <div class="cards">
     <div class="card"><div class="card-label">Receitas</div><div class="card-value inc" id="d-rec">R$ 0,00</div><div class="card-sub" id="d-rec-c">0 lançamentos</div></div>
@@ -424,6 +432,7 @@ let fixedItems   = [];
 let parcels      = [];
 let currentType  = 'gasto';
 let catMonthSel  = null;
+let dashMonth    = null; // selected month on dashboard
 let charts = {};
 
 // ── LOAD FROM SUPABASE ────────────────────────────────────────
@@ -707,9 +716,14 @@ function updateSidebar() {
 }
 
 function renderDashboard() {
-  const cm=currentMonthStr();
-  const mn=new Date();
-  document.getElementById('dash-month-label').textContent=MONTHS_PT[mn.getMonth()].toUpperCase()+' DE '+mn.getFullYear();
+  if(!dashMonth) dashMonth = currentMonthStr();
+  const cm = dashMonth;
+  const isToday = cm === currentMonthStr();
+  const [y, mo] = cm.split('-');
+  document.getElementById('dash-month-label').textContent = isToday ? 'MÊS ATUAL' : 'VISUALIZANDO MÊS';
+  document.getElementById('dash-month-nav').textContent = MONTHS_PT[+mo-1].toUpperCase() + ' ' + y;
+  document.getElementById('btn-hoje').style.display = isToday ? 'none' : 'block';
+
   const realTx=transactions.filter(t=>txMonth(t)===cm);
   const rec=realTx.filter(t=>t.tipo==='receita');
   const gast=realTx.filter(t=>t.tipo==='gasto');
@@ -730,7 +744,7 @@ function renderDashboard() {
   document.getElementById('d-gast-c').textContent=gast.length+' lançamento'+(gast.length!==1?'s':'');
   document.getElementById('d-fix-c').textContent=fixedItems.length+' ite'+(fixedItems.length!==1?'ns':'m')+' ativo'+(fixedItems.length!==1?'s':'');
   document.getElementById('d-par-c').textContent=activeP.length+' ativa'+(activeP.length!==1?'s':'');
-  // recent
+  // transactions for selected month
   const tbody=document.getElementById('recent-tbody');
   const empty=document.getElementById('recent-empty');
   const virt=getVirtualForMonth(cm);
@@ -738,6 +752,17 @@ function renderDashboard() {
   if(!all.length){tbody.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   tbody.innerHTML=all.map(t=>rowHtml(t,false)).join('');
+}
+
+function changeDashMonth(dir) {
+  if(!dashMonth) dashMonth = currentMonthStr();
+  dashMonth = addMonths(dashMonth, dir);
+  renderDashboard();
+}
+
+function goToCurrentMonth() {
+  dashMonth = currentMonthStr();
+  renderDashboard();
 }
 
 function rowHtml(t, withType) {
