@@ -278,7 +278,7 @@
     <div><div class="page-title">Gastos Fixos</div><div class="page-sub">CLIQUE EM PAGO/PENDENTE PARA MARCAR O STATUS</div></div>
     <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
       <button onclick="changeFixedMonth(-1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">‹</button>
-      <div id="fixed-month-nav" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 16px;font-size:12px;min-width:120px;text-align:center;letter-spacing:.5px;"></div>
+      <div id="fixed-month-nav" style="background:var(--surface2);border:1px solid var(--accent,#e8d5a3);border-radius:5px;padding:7px 16px;font-size:12px;min-width:120px;text-align:center;letter-spacing:.5px;color:var(--accent,#e8d5a3);font-weight:500;"></div>
       <button onclick="changeFixedMonth(1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">›</button>
     </div>
   </div>
@@ -307,7 +307,18 @@
 
 <!-- PARCELAS -->
 <div class="page" id="page-parcelas">
-  <div class="page-header"><div class="page-title">Parcelas</div><div class="page-sub">CARTÃO DE CRÉDITO E COMPRAS PARCELADAS</div></div>
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div><div class="page-title">Parcelas</div><div class="page-sub">CARTÃO DE CRÉDITO E COMPRAS PARCELADAS</div></div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+      <button onclick="changeParcelMonth(-1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">‹</button>
+      <div id="parcel-month-nav" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 16px;font-size:12px;min-width:120px;text-align:center;letter-spacing:.5px;"></div>
+      <button onclick="changeParcelMonth(1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">›</button>
+    </div>
+  </div>
+  <div id="parcel-summary" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:16px;display:flex;gap:24px;flex-wrap:wrap;">
+    <div><div style="font-size:10px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase">Parcelas Ativas</div><div id="parcel-summary-count" style="font-family:'Fraunces',serif;font-size:22px;font-weight:300;margin-top:4px;">0</div></div>
+    <div><div style="font-size:10px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase">Total do Mês</div><div id="parcel-summary-total" style="font-family:'Fraunces',serif;font-size:22px;font-weight:300;color:var(--parcel);margin-top:4px;">R$ 0,00</div></div>
+  </div>
   <div class="form-panel">
     <div class="form-panel-title">Cadastrar Compra Parcelada</div>
     <div class="form-row cols4" style="margin-bottom:12px">
@@ -553,7 +564,7 @@ function showPage(id) {
   if(id==='graficos') setTimeout(renderCharts,50);
   if(id==='categorias') renderCatPage();
   if(id==='fixos') { fixedMonth = fixedMonth||currentMonthStr(); renderFixed(); }
-  if(id==='parcelas') renderParcels();
+  if(id==='parcelas') { parcelMonth = parcelMonth||currentMonthStr(); renderParcels(); }
 }
 
 // ── TYPE ──────────────────────────────────────────────────────
@@ -700,34 +711,56 @@ async function delParcel(id) {
   updateAll(); renderParcels();
 }
 
+let parcelMonth = null;
+
+function changeParcelMonth(dir) {
+  if(!parcelMonth) parcelMonth = currentMonthStr();
+  parcelMonth = addMonths(parcelMonth, dir);
+  renderParcels();
+}
+
 function renderParcels() {
+  if(!parcelMonth) parcelMonth = currentMonthStr();
   const list=document.getElementById('parcel-list');
   const empty=document.getElementById('parcel-empty');
   const label=document.getElementById('parcel-total-label');
-  if(!parcels.length){list.innerHTML='';empty.style.display='block';label.textContent='';return;}
+  const nav=document.getElementById('parcel-month-nav');
+  const summary=document.getElementById('parcel-summary');
+
+  const [y,mo]=parcelMonth.split('-');
+  if(nav) nav.textContent = MONTHS_PT[+mo-1].toUpperCase()+' '+y;
+
+  if(!parcels.length){list.innerHTML='';empty.style.display='block';label.textContent='';if(summary)summary.style.display='none';return;}
   empty.style.display='none';
-  const cm=currentMonthStr();
-  // sum of active parcels this month
-  const active=parcels.filter(p=>{
-    const fim=addMonths(p.inicio,p.num-1);
-    return p.inicio<=cm && fim>=cm;
-  });
+
+  const cm=parcelMonth;
+  const active=parcels.filter(p=>{ const fim=addMonths(p.inicio,p.num-1); return p.inicio<=cm && fim>=cm; });
   const totalMes=active.reduce((a,p)=>a+p.total/p.num,0);
-  label.textContent=`${fmt(totalMes)}/mês atualmente`;
-  list.innerHTML=parcels.map(p=>{
+  label.textContent=`${active.length} ativas · ${fmt(totalMes)}/mês`;
+
+  if(summary) {
+    summary.style.display='flex';
+    document.getElementById('parcel-summary-count').textContent=active.length;
+    document.getElementById('parcel-summary-total').textContent=fmt(totalMes);
+  }
+
+  const visible=parcels.filter(p=>{ const fim=addMonths(p.inicio,p.num-1); return p.inicio<=cm; });
+  if(!visible.length){list.innerHTML='';empty.style.display='block';return;}
+
+  list.innerHTML=visible.map(p=>{
     const parcVal=p.total/p.num;
     const fim=addMonths(p.inicio,p.num-1);
     const [sy,sm]=p.inicio.split('-').map(Number);
-    const [fy,fm]=fim.split('-').map(Number);
     const [cy,cmn]=cm.split('-').map(Number);
     const elapsed=Math.max(0,Math.min(p.num,(cy-sy)*12+(cmn-sm)+1));
     const pct=Math.round(elapsed/p.num*100);
     const done=cm>fim;
+    const isActive=p.inicio<=cm && fim>=cm;
     const [fi,fo]=p.inicio.split('-');
     const [fe,foe]=fim.split('-');
-    return `<div class="fixed-item">
+    return `<div class="fixed-item" style="${done?'opacity:.55':''}">
       <div class="fixed-info">
-        <div class="fixed-name">${p.descricao} ${done?'<span style="font-size:10px;color:var(--income)">✓ quitado</span>':''}</div>
+        <div class="fixed-name">${p.descricao} ${done?'<span style="font-size:10px;color:var(--income)">✓ quitado</span>':isActive?'<span style="font-size:10px;color:var(--parcel)">● ativo</span>':''}</div>
         <div class="fixed-meta">
           <span><span class="tag-dot" style="background:${catColor(p.cat)};display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:4px"></span>${p.cat}</span>
           <span>${MONTHS_PT[+fo-1]}/${fi.slice(2)} → ${MONTHS_PT[+foe-1]}/${fe.slice(2)}</span>
