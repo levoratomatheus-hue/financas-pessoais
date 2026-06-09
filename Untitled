@@ -1,0 +1,10 @@
+No arquivo index.html, faça as seguintes mudanças na página de Parcelas:
+
+1. Mova a navegação de mês (botões ‹ ›) para ficar logo acima da div table-wrap das parcelas, e não no page-header.
+
+2. Parcelas quitadas (onde o mês atual for posterior ao último mês da parcela) NÃO devem aparecer na listagem — remova completamente do HTML renderizado, não mostre nem como quitada.
+
+Na página de Gastos Fixos:
+3. Mova também a navegação de mês (botões ‹ ›) para ficar logo acima da div table-wrap dos fixos, e não no page-header. O page-header volta a ser simples com título e subtítulo apenas.
+
+Depois faz commit e push.
