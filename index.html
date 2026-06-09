@@ -689,17 +689,14 @@ function editFixed(id) {
   const el = document.getElementById('frow-'+id);
   if(!el) return;
   const catOptions = CATEGORIES.map(c=>`<option value="${c.name}" ${c.name===f.cat?'selected':''}>${c.name}</option>`).join('');
-  el.innerHTML = `
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex:1;padding:4px 0">
-      <input id="fedit-desc-${id}" class="form-input" style="flex:2;min-width:120px" value="${f.descricao.replace(/"/g,'&quot;')}">
-      <input id="fedit-val-${id}" class="form-input" style="width:80px" type="number" step="0.01" value="${f.valor}">
-      <select id="fedit-cat-${id}" class="form-select" style="flex:1;min-width:110px">${catOptions}</select>
-      <input id="fedit-dia-${id}" class="form-input" style="width:60px" type="number" min="1" max="31" value="${f.dia}" placeholder="Dia">
-    </div>
-    <div style="display:flex;gap:6px;white-space:nowrap;align-items:center">
-      <button class="btn btn-sm" style="color:#82E0AA" onclick="saveFixed(${id})">✓ Salvar</button>
-      <button class="btn btn-sm btn-danger" onclick="renderFixed()">✗</button>
-    </div>`;
+  el.innerHTML = `<div style="display:flex;gap:8px;align-items:center;padding:6px 4px;flex-wrap:wrap;">
+    <input id="fedit-desc-${id}" style="${EDIT_INPUT}flex:2;min-width:120px" value="${f.descricao.replace(/"/g,'&quot;')}">
+    <input id="fedit-val-${id}" style="${EDIT_INPUT}flex:1;min-width:80px" type="number" step="0.01" value="${f.valor}">
+    <select id="fedit-cat-${id}" style="${EDIT_INPUT}flex:1.5;min-width:110px">${catOptions}</select>
+    <input id="fedit-dia-${id}" style="${EDIT_INPUT}width:70px" type="number" min="1" max="31" value="${f.dia}" placeholder="Dia">
+    <button class="btn btn-sm" style="color:#82E0AA;white-space:nowrap" onclick="saveFixed(${id})">✓ Salvar</button>
+    <button class="btn btn-sm btn-danger" onclick="renderFixed()">✗</button>
+  </div>`;
 }
 
 async function saveFixed(id) {
@@ -824,18 +821,15 @@ function editParcel(id) {
   const el = document.getElementById('prow-'+id);
   if(!el) return;
   const catOptions = CATEGORIES.map(c=>`<option value="${c.name}" ${c.name===p.cat?'selected':''}>${c.name}</option>`).join('');
-  el.innerHTML = `
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex:1;padding:4px 0">
-      <input id="pedit-desc-${id}" class="form-input" style="flex:2;min-width:120px" value="${p.descricao.replace(/"/g,'&quot;')}">
-      <input id="pedit-total-${id}" class="form-input" style="width:90px" type="number" step="0.01" value="${p.total}" placeholder="Total R$">
-      <input id="pedit-num-${id}" class="form-input" style="width:60px" type="number" min="1" value="${p.num}" placeholder="Parcelas">
-      <select id="pedit-cat-${id}" class="form-select" style="flex:1;min-width:110px">${catOptions}</select>
-      <input id="pedit-inicio-${id}" class="form-input" style="width:130px" type="month" value="${p.inicio}">
-    </div>
-    <div style="display:flex;gap:6px;white-space:nowrap;align-items:center">
-      <button class="btn btn-sm" style="color:#82E0AA" onclick="saveParcel(${id})">✓ Salvar</button>
-      <button class="btn btn-sm btn-danger" onclick="renderParcels()">✗</button>
-    </div>`;
+  el.innerHTML = `<div style="display:flex;gap:8px;align-items:center;padding:6px 4px;flex-wrap:wrap;">
+    <input id="pedit-desc-${id}" style="${EDIT_INPUT}flex:2;min-width:120px" value="${p.descricao.replace(/"/g,'&quot;')}">
+    <input id="pedit-total-${id}" style="${EDIT_INPUT}flex:1;min-width:80px" type="number" step="0.01" value="${p.total}" placeholder="Total R$">
+    <input id="pedit-num-${id}" style="${EDIT_INPUT}width:70px" type="number" min="1" value="${p.num}" placeholder="Nº">
+    <select id="pedit-cat-${id}" style="${EDIT_INPUT}flex:1.5;min-width:110px">${catOptions}</select>
+    <input id="pedit-inicio-${id}" style="${EDIT_INPUT}width:130px" type="month" value="${p.inicio}">
+    <button class="btn btn-sm" style="color:#82E0AA;white-space:nowrap" onclick="saveParcel(${id})">✓ Salvar</button>
+    <button class="btn btn-sm btn-danger" onclick="renderParcels()">✗</button>
+  </div>`;
 }
 
 async function saveParcel(id) {
@@ -952,25 +946,24 @@ function rowHtml(t, withType) {
   </tr>`;
 }
 
+const EDIT_INPUT = 'background:var(--surface2);border:1px solid var(--accent,#e8d5a3);border-radius:4px;padding:6px 10px;color:var(--text);font-family:"DM Mono",monospace;font-size:12px;';
+
 function editTx(id) {
   const t = transactions.find(x=>x.id===id);
   if(!t) return;
   const row = document.getElementById('row-'+id);
   if(!row) return;
-  const catOptions = CATEGORIES.map(c=>`<option value="${c.name}" ${c.name===t.cat?'selected':''}>${c.name}</option>`).join('');
   const colCount = row.cells.length;
-  row.innerHTML = `
-    <td colspan="${colCount-1}" style="padding:6px 0">
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <input id="edit-desc-${id}" class="form-input" style="flex:2;min-width:120px" value="${t.descricao.replace(/"/g,'&quot;')}">
-        <input id="edit-val-${id}" class="form-input" style="width:90px" type="number" step="0.01" value="${t.valor}">
-        <select id="edit-cat-${id}" class="form-select" style="flex:1;min-width:110px">${catOptions}</select>
-      </div>
-    </td>
-    <td style="white-space:nowrap">
-      <button class="btn btn-sm" style="color:#82E0AA;margin-right:4px" onclick="saveTx(${id})">✓ Salvar</button>
+  const catOptions = CATEGORIES.map(c=>`<option value="${c.name}" ${c.name===t.cat?'selected':''}>${c.name}</option>`).join('');
+  row.innerHTML = `<td colspan="${colCount}" style="padding:6px 4px">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input id="edit-desc-${id}" style="${EDIT_INPUT}flex:2;min-width:120px" value="${t.descricao.replace(/"/g,'&quot;')}">
+      <input id="edit-val-${id}" style="${EDIT_INPUT}flex:1;min-width:80px" type="number" step="0.01" value="${t.valor}">
+      <select id="edit-cat-${id}" style="${EDIT_INPUT}flex:1.5;min-width:110px">${catOptions}</select>
+      <button class="btn btn-sm" style="color:#82E0AA;white-space:nowrap" onclick="saveTx(${id})">✓ Salvar</button>
       <button class="btn btn-sm btn-danger" onclick="cancelEdit(${id})">✗</button>
-    </td>`;
+    </div>
+  </td>`;
 }
 
 function cancelEdit(id) {
