@@ -343,7 +343,11 @@
 <!-- CATEGORIAS -->
 <div class="page" id="page-categorias">
   <div class="page-header"><div class="page-title">Categorias</div><div class="page-sub">GASTOS POR CATEGORIA</div></div>
-  <div class="month-tabs" id="cat-month-tabs"></div>
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;">
+    <button onclick="changeCatMonth(-1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">‹</button>
+    <div id="cat-month-nav" style="background:var(--surface2);border:1px solid var(--accent,#e8d5a3);border-radius:5px;padding:7px 16px;font-size:12px;min-width:120px;text-align:center;letter-spacing:.5px;color:var(--accent,#e8d5a3);font-weight:500;"></div>
+    <button onclick="changeCatMonth(1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:7px 12px;cursor:pointer;font-size:14px;">›</button>
+  </div>
   <div class="cat-grid" id="cat-grid"></div>
   <div class="empty-state" id="cat-empty" style="display:none">Sem gastos no período selecionado.</div>
 </div>
@@ -658,7 +662,7 @@ function renderFixed() {
   label.textContent=`${paidCount}/${fixedItems.length} pagos · Total: ${fmt(total)}/mês`;
   list.innerHTML=fixedItems.map(f=>{
     const paid=isPaid(f.id,fixedMonth);
-    return `<div class="fixed-item" style="${paid?'opacity:.6':''}">
+    return `<div class="fixed-item" id="frow-${f.id}" style="${paid?'opacity:.6':''}">
       <div class="fixed-info">
         <div class="fixed-name" style="${paid?'text-decoration:line-through;color:var(--text-muted)':''}"> ${f.descricao}</div>
         <div class="fixed-meta">
@@ -672,10 +676,49 @@ function renderFixed() {
         <button class="pay-btn ${paid?'paid':'pending'}" onclick="togglePaid(${f.id})">
           ${paid?'✓ Pago':'● Pendente'}
         </button>
+        <button class="btn btn-sm" style="margin-right:2px" onclick="editFixed(${f.id})">✎</button>
         <button class="btn btn-danger btn-sm" onclick="delFixed(${f.id})">×</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function editFixed(id) {
+  const f = fixedItems.find(x=>x.id===id);
+  if(!f) return;
+  const el = document.getElementById('frow-'+id);
+  if(!el) return;
+  const catOptions = CATEGORIES.map(c=>`<option value="${c.name}" ${c.name===f.cat?'selected':''}>${c.name}</option>`).join('');
+  el.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex:1;padding:4px 0">
+      <input id="fedit-desc-${id}" class="form-input" style="flex:2;min-width:120px" value="${f.descricao.replace(/"/g,'&quot;')}">
+      <input id="fedit-val-${id}" class="form-input" style="width:80px" type="number" step="0.01" value="${f.valor}">
+      <select id="fedit-cat-${id}" class="form-select" style="flex:1;min-width:110px">${catOptions}</select>
+      <input id="fedit-dia-${id}" class="form-input" style="width:60px" type="number" min="1" max="31" value="${f.dia}" placeholder="Dia">
+    </div>
+    <div style="display:flex;gap:6px;white-space:nowrap;align-items:center">
+      <button class="btn btn-sm" style="color:#82E0AA" onclick="saveFixed(${id})">✓ Salvar</button>
+      <button class="btn btn-sm btn-danger" onclick="renderFixed()">✗</button>
+    </div>`;
+}
+
+async function saveFixed(id) {
+  const descricao = document.getElementById('fedit-desc-'+id)?.value.trim();
+  const valor = parseFloat(document.getElementById('fedit-val-'+id)?.value);
+  const cat = document.getElementById('fedit-cat-'+id)?.value;
+  const dia = parseInt(document.getElementById('fedit-dia-'+id)?.value)||1;
+  if(!descricao || isNaN(valor)) return alert('Preencha descrição e valor.');
+  setLoading(true);
+  const updated = await sbPatch('fixos', id, {descricao, valor, cat, dia});
+  setLoading(false);
+  if(updated) {
+    const idx = fixedItems.findIndex(x=>x.id===id);
+    if(idx>-1) fixedItems[idx] = {...fixedItems[idx], descricao, valor, cat, dia};
+    showToast('Salvo!');
+    updateAll(); renderFixed();
+  } else {
+    showToast('Erro ao salvar.', false);
+  }
 }
 
 // ── ADD PARCEL ────────────────────────────────────────────────
@@ -751,7 +794,7 @@ function renderParcels() {
     const pct=Math.round(elapsed/p.num*100);
     const [fi,fo]=p.inicio.split('-');
     const [fe,foe]=fim.split('-');
-    return `<div class="fixed-item">
+    return `<div class="fixed-item" id="prow-${p.id}">
       <div class="fixed-info">
         <div class="fixed-name">${p.descricao}</div>
         <div class="fixed-meta">
@@ -768,10 +811,51 @@ function renderParcels() {
           </div>
           <div class="parcel-prog-bar"><div class="parcel-prog-fill" style="width:${pct}%;background:var(--parcel)"></div></div>
         </div>
+        <button class="btn btn-sm" style="margin-right:2px" onclick="editParcel(${p.id})">✎</button>
         <button class="btn btn-danger btn-sm" onclick="delParcel(${p.id})">×</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function editParcel(id) {
+  const p = parcels.find(x=>x.id===id);
+  if(!p) return;
+  const el = document.getElementById('prow-'+id);
+  if(!el) return;
+  const catOptions = CATEGORIES.map(c=>`<option value="${c.name}" ${c.name===p.cat?'selected':''}>${c.name}</option>`).join('');
+  el.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex:1;padding:4px 0">
+      <input id="pedit-desc-${id}" class="form-input" style="flex:2;min-width:120px" value="${p.descricao.replace(/"/g,'&quot;')}">
+      <input id="pedit-total-${id}" class="form-input" style="width:90px" type="number" step="0.01" value="${p.total}" placeholder="Total R$">
+      <input id="pedit-num-${id}" class="form-input" style="width:60px" type="number" min="1" value="${p.num}" placeholder="Parcelas">
+      <select id="pedit-cat-${id}" class="form-select" style="flex:1;min-width:110px">${catOptions}</select>
+      <input id="pedit-inicio-${id}" class="form-input" style="width:130px" type="month" value="${p.inicio}">
+    </div>
+    <div style="display:flex;gap:6px;white-space:nowrap;align-items:center">
+      <button class="btn btn-sm" style="color:#82E0AA" onclick="saveParcel(${id})">✓ Salvar</button>
+      <button class="btn btn-sm btn-danger" onclick="renderParcels()">✗</button>
+    </div>`;
+}
+
+async function saveParcel(id) {
+  const descricao = document.getElementById('pedit-desc-'+id)?.value.trim();
+  const total = parseFloat(document.getElementById('pedit-total-'+id)?.value);
+  const num = parseInt(document.getElementById('pedit-num-'+id)?.value);
+  const cat = document.getElementById('pedit-cat-'+id)?.value;
+  const inicio = document.getElementById('pedit-inicio-'+id)?.value;
+  if(!descricao || isNaN(total) || isNaN(num) || !inicio) return alert('Preencha todos os campos.');
+  setLoading(true);
+  const updated = await sbPatch('parcelas', id, {descricao, total, num, cat, inicio});
+  setLoading(false);
+  if(updated) {
+    const idx = parcels.findIndex(x=>x.id===id);
+    if(idx>-1) parcels[idx] = {...parcels[idx], descricao, total, num, cat, inicio};
+    showToast('Salvo!');
+    updateAll(); renderParcels();
+  } else {
+    showToast('Erro ao salvar.', false);
+  }
 }
 
 // ── UPDATE ALL ────────────────────────────────────────────────
@@ -943,15 +1027,17 @@ function populateMonthFilter() {
 }
 
 // ── CATEGORIES PAGE ───────────────────────────────────────────
+function changeCatMonth(dir) {
+  if(!catMonthSel) catMonthSel = currentMonthStr();
+  catMonthSel = addMonths(catMonthSel, dir);
+  renderCatPage();
+}
+
 function renderCatPage() {
-  const months=allMonths().reverse();
-  if(!catMonthSel&&months.length) catMonthSel=months[0];
-  const tabs=document.getElementById('cat-month-tabs');
-  tabs.innerHTML=months.map(m=>{
-    const[y,mo]=m.split('-');
-    return `<button class="month-tab ${m===catMonthSel?'active':''}" onclick="setCatMonth('${m}')">${MONTHS_PT[+mo-1]} ${y}</button>`;
-  }).join('');
-  const txs=catMonthSel?allTxForMonth(catMonthSel).filter(t=>t.tipo==='gasto'):[];
+  if(!catMonthSel) catMonthSel = currentMonthStr();
+  const nav=document.getElementById('cat-month-nav');
+  if(nav){ const[y,mo]=catMonthSel.split('-'); nav.textContent=MONTHS_PT[+mo-1].toUpperCase()+' '+y; }
+  const txs=allTxForMonth(catMonthSel).filter(t=>t.tipo==='gasto');
   const total=txs.reduce((a,t)=>a+t.valor,0);
   const byCat={};
   txs.forEach(t=>{byCat[t.cat]=(byCat[t.cat]||0)+t.valor;});
@@ -972,7 +1058,6 @@ function renderCatPage() {
     </div>`;
   }).join('');
 }
-function setCatMonth(m){catMonthSel=m;renderCatPage();}
 
 // ── CHARTS ────────────────────────────────────────────────────
 Chart.defaults.color='#7a786f';
