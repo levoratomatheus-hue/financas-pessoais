@@ -546,6 +546,7 @@ function init() {
   ['f-cat','fx-cat','pc-cat','filter-cat'].forEach(id => {
     const el = document.getElementById(id);
     if(!el) return;
+    el.innerHTML = id==='filter-cat' ? '<option value="">Todas categorias</option>' : '';
     CATEGORIES.forEach(c => el.innerHTML += `<option value="${c.name}">${c.name}</option>`);
   });
   document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
