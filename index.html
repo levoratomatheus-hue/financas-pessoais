@@ -29,7 +29,6 @@
   .kpi-month-nav button{background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:4px;padding:1px 5px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;min-height:unset;line-height:1.4;}
   .kpi-month-nav button:hover{color:var(--text);border-color:var(--accent);}
   .kpi-month-nav span{flex:1;text-align:center;letter-spacing:1px;font-size:10px;}
-  #kpi-hoje-btn{color:var(--accent);border-color:var(--accent);font-size:9px;letter-spacing:.5px;}
   .balance-label{color:var(--text-muted);font-size:10px;letter-spacing:2px;text-transform:uppercase;}
   .balance-amount{font-family:'Fraunces',serif;font-size:26px;font-weight:300;letter-spacing:-1px;}
   .balance-amount.positive{color:var(--income);}
@@ -219,7 +218,6 @@
       <button onclick="changeKpiMonth(-1)">‹</button>
       <span id="kpi-month-label">—</span>
       <button onclick="changeKpiMonth(1)">›</button>
-      <button id="kpi-hoje-btn" onclick="resetKpiMonth()" style="display:none">HOJE</button>
     </div>
     <div class="balance-amount positive" id="sb-saldo">R$ 0,00</div>
     <div class="divider"></div>
@@ -906,11 +904,8 @@ function resetKpiMonth() {
 function updateSidebar() {
   if(!kpiMonth) kpiMonth = currentMonthStr();
   const cm = kpiMonth;
-  const isToday = cm === currentMonthStr();
   const [y, mo] = cm.split('-');
   document.getElementById('kpi-month-label').textContent = MONTHS_PT[+mo-1].toUpperCase()+' '+y;
-  const hojeBtn = document.getElementById('kpi-hoje-btn');
-  if(hojeBtn) hojeBtn.style.display = isToday ? 'none' : '';
   const rec=transactions.filter(t=>t.tipo==='receita'&&txMonth(t)===cm).reduce((a,t)=>a+t.valor,0);
   const gast=transactions.filter(t=>t.tipo==='gasto'&&txMonth(t)===cm).reduce((a,t)=>a+t.valor,0);
   const fixTot=fixedItems.reduce((a,f)=>a+f.valor,0);
